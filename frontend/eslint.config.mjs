@@ -10,3 +10,4 @@ export default defineConfig([
     extends: ['eslint:recommended', 'plugin:prettier/recommended'],
   },
 ]);
+ 
