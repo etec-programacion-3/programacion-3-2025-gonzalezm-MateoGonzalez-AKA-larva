@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException, Depends
 from sqlalchemy.orm import Session
-from backend.database import SessionLocal, engine, Base
-from backend.models import Producto, Proveedor, MovimientoDeStock, TipoMovimiento
+from .database import SessionLocal, engine, Base
+from .models import Producto, Proveedor, MovimientoDeStock, TipoMovimiento
 
 
 # Crear tablas
