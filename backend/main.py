@@ -1,14 +1,19 @@
 from fastapi import FastAPI, HTTPException, Depends
 from sqlalchemy.orm import Session
+from pydantic import BaseModel
 from .database import SessionLocal, engine, Base
-from .models import Producto, Proveedor, MovimientoDeStock
+from .models import Producto, MovimientoDeStock
 
-# Crear tablas
+# ==========================
+# Crear tablas si no existen
+# ==========================
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
-# Dependencia para la sesión de DB
+# ==========================
+# Dependencia de sesión DB
+# ==========================
 def get_db():
     db = SessionLocal()
     try:
@@ -16,31 +21,49 @@ def get_db():
     finally:
         db.close()
 
-# ------------------------------
-# ENDPOINTS DE PRODUCTOS (CRUD)
-# ------------------------------
+# ==========================
+# Schemas Pydantic
+# ==========================
+class ProductoCreate(BaseModel):
+    nombre: str
+    sku: str
+    precio_compra: float
+    precio_venta: float
+    stock_actual: int = 0
 
-# Crear un producto
+class ProductoUpdate(BaseModel):
+    nombre: str | None = None
+    sku: str | None = None
+    precio_compra: float | None = None
+    precio_venta: float | None = None
+    stock_actual: int | None = None
+
+class MovimientoCreate(BaseModel):
+    producto_id: int
+    cantidad: int
+    tipo: str  # 'ingreso', 'venta', 'ajuste'
+
+# ==========================
+# CRUD Productos
+# ==========================
 @app.post("/api/products")
-def create_product(nombre: str, sku: str, precio_compra: float, precio_venta: float, stock_actual: int = 0, db: Session = Depends(get_db)):
-    producto = Producto(
-        nombre=nombre,
-        sku=sku,
-        precio_compra=precio_compra,
-        precio_venta=precio_venta,
-        stock_actual=stock_actual
+def create_product(producto: ProductoCreate, db: Session = Depends(get_db)):
+    nuevo_producto = Producto(
+        nombre=producto.nombre,
+        sku=producto.sku,
+        precio_compra=producto.precio_compra,
+        precio_venta=producto.precio_venta,
+        stock_actual=producto.stock_actual
     )
-    db.add(producto)
+    db.add(nuevo_producto)
     db.commit()
-    db.refresh(producto)
-    return producto
+    db.refresh(nuevo_producto)
+    return nuevo_producto
 
-# Listar productos
 @app.get("/api/products")
 def list_products(db: Session = Depends(get_db)):
     return db.query(Producto).all()
 
-# Obtener producto por ID
 @app.get("/api/products/{product_id}")
 def get_product(product_id: int, db: Session = Depends(get_db)):
     producto = db.query(Producto).filter(Producto.id == product_id).first()
@@ -48,35 +71,17 @@ def get_product(product_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Producto no encontrado")
     return producto
 
-# Actualizar producto por ID
 @app.put("/api/products/{product_id}")
-def update_product(
-    product_id: int,
-    nombre: str = None,
-    sku: str = None,
-    precio_compra: float = None,
-    precio_venta: float = None,
-    stock_actual: int = None,
-    db: Session = Depends(get_db)
-):
-    producto = db.query(Producto).filter(Producto.id == product_id).first()
-    if not producto:
+def update_product(product_id: int, producto: ProductoUpdate, db: Session = Depends(get_db)):
+    existing = db.query(Producto).filter(Producto.id == product_id).first()
+    if not existing:
         raise HTTPException(status_code=404, detail="Producto no encontrado")
-    if nombre is not None:
-        producto.nombre = nombre
-    if sku is not None:
-        producto.sku = sku
-    if precio_compra is not None:
-        producto.precio_compra = precio_compra
-    if precio_venta is not None:
-        producto.precio_venta = precio_venta
-    if stock_actual is not None:
-        producto.stock_actual = stock_actual
+    for field, value in producto.dict(exclude_unset=True).items():
+        setattr(existing, field, value)
     db.commit()
-    db.refresh(producto)
-    return producto
+    db.refresh(existing)
+    return existing
 
-# Eliminar producto por ID
 @app.delete("/api/products/{product_id}")
 def delete_product(product_id: int, db: Session = Depends(get_db)):
     producto = db.query(Producto).filter(Producto.id == product_id).first()
@@ -86,39 +91,30 @@ def delete_product(product_id: int, db: Session = Depends(get_db)):
     db.commit()
     return {"detail": "Producto eliminado"}
 
-# ------------------------------
-# ENDPOINT DE MOVIMIENTOS DE STOCK
-# ------------------------------
-
-from pydantic import BaseModel
-
-class MovimientoCreate(BaseModel):
-    producto_id: int
-    cantidad: int
-    tipo_movimiento: str  # 'ingreso', 'venta', 'ajuste'
-
+# ==========================
+# Movimientos de Stock
+# ==========================
 @app.post("/api/stock/movements")
-def crear_movimiento(movimiento: MovimientoCreate, db: Session = Depends(get_db)):
-    # Buscar producto
+def create_stock_movement(movimiento: MovimientoCreate, db: Session = Depends(get_db)):
     producto = db.query(Producto).filter(Producto.id == movimiento.producto_id).first()
     if not producto:
         raise HTTPException(status_code=404, detail="Producto no encontrado")
 
-    # Validar cantidad para ventas
-    if movimiento.tipo_movimiento == "venta" and movimiento.cantidad > producto.stock_actual:
-        raise HTTPException(status_code=400, detail="Stock insuficiente")
+    # Verificar stock suficiente si es salida
+    if movimiento.tipo in ["venta", "ajuste"] and movimiento.cantidad > producto.stock_actual:
+        raise HTTPException(status_code=400, detail="Cantidad mayor al stock disponible")
 
-    # Actualizar stock
-    if movimiento.tipo_movimiento in ["ingreso", "ajuste"]:
+    # Ajustar stock según tipo
+    if movimiento.tipo == "ingreso":
         producto.stock_actual += movimiento.cantidad
-    elif movimiento.tipo_movimiento == "venta":
+    else:  # 'venta' o 'ajuste'
         producto.stock_actual -= movimiento.cantidad
 
-    # Registrar movimiento
+    # Crear registro de movimiento
     nuevo_movimiento = MovimientoDeStock(
-        producto_id=movimiento.producto_id,
+        producto_id=producto.id,
         cantidad=movimiento.cantidad,
-        tipo_movimiento=movimiento.tipo_movimiento
+        tipo=movimiento.tipo
     )
 
     # Transacción atómica
@@ -130,9 +126,4 @@ def crear_movimiento(movimiento: MovimientoCreate, db: Session = Depends(get_db)
         db.rollback()
         raise HTTPException(status_code=500, detail="Error al registrar movimiento")
 
-    return {"mensaje": "Movimiento registrado", "movimiento": {
-        "id": nuevo_movimiento.id,
-        "producto_id": nuevo_movimiento.producto_id,
-        "cantidad": nuevo_movimiento.cantidad,
-        "tipo_movimiento": nuevo_movimiento.tipo_movimiento
-    }}
+    return {"producto": producto, "movimiento": nuevo_movimiento}
