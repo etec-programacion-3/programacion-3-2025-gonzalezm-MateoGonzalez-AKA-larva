@@ -1,8 +1,36 @@
+
 from fastapi import FastAPI, HTTPException, Depends
+from fastapi.middleware.cors import CORSMiddleware
+
+app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],  # React corre acá
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+from fastapi.middleware.cors import CORSMiddleware
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],  # URL de tu React app
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from .database import SessionLocal, engine, Base
 from .models import Producto, MovimientoDeStock
+
+from fastapi.responses import FileResponse
+
+@app.get("/favicon.ico")
+def favicon():
+    return FileResponse("ruta/a/tu/favicon.ico")
+
 
 # ==========================
 # Crear tablas si no existen
@@ -127,3 +155,6 @@ def create_stock_movement(movimiento: MovimientoCreate, db: Session = Depends(ge
         raise HTTPException(status_code=500, detail="Error al registrar movimiento")
 
     return {"producto": producto, "movimiento": nuevo_movimiento}
+@app.get("/")
+def root():
+    return {"message": "API backend funcionando correctamente"}
