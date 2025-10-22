@@ -22,11 +22,11 @@ class Producto(Base):
     id = Column(Integer, primary_key=True, index=True)
     sku = Column(String, unique=True, index=True)
     nombre = Column(String, index=True)
-    descripcion = Column(String)
+    descripcion = Column(String, nullable=True)  # Agregado nullable
     precio_compra = Column(Float)
     precio_venta = Column(Float)
     stock_actual = Column(Integer, default=0)
-    proveedor_id = Column(Integer, ForeignKey("proveedores.id"))
+    proveedor_id = Column(Integer, ForeignKey("proveedores.id"), nullable=True)  # Agregado nullable=True
 
     proveedor = relationship("Proveedor", back_populates="productos")
     movimientos = relationship("MovimientoDeStock", back_populates="producto")
