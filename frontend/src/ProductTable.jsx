@@ -1,31 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 
-export default function ProductTable() {
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetch("http://127.0.0.1:8000/api/products")
-      .then((res) => res.json())
-      .then((data) => {
-        setProducts(data);
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error(err);
-        setLoading(false);
-      });
-  }, []);
-  useEffect(() => {
-    fetch("http://127.0.0.1:8000/api/products")
-        .then((res) => res.json())
-        .then((data) => setProducts(data))
-        .catch((err) => console.error(err));
-}, []);
-
-
-  if (loading) return <p>Cargando productos...</p>;
-
+// 1. Recibimos 'products', 'onEdit' y 'onDelete'
+export default function ProductTable({ products, onEdit, onDelete }) {
+  
   if (!products.length) return <p>No hay productos para mostrar.</p>;
 
   return (
@@ -38,6 +15,7 @@ export default function ProductTable() {
           <th>Precio Compra</th>
           <th>Precio Venta</th>
           <th>Stock</th>
+          <th>Acciones</th> {/* 2. Nueva columna */}
         </tr>
       </thead>
       <tbody>
@@ -49,6 +27,11 @@ export default function ProductTable() {
             <td>{p.precio_compra}</td>
             <td>{p.precio_venta}</td>
             <td>{p.stock_actual}</td>
+            <td>
+              {/* 3. Botones con sus respectivos handlers */}
+              <button onClick={() => onEdit(p)}>Editar</button>
+              <button onClick={() => onDelete(p.id)}>Eliminar</button>
+            </td>
           </tr>
         ))}
       </tbody>
