@@ -4,16 +4,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
 # Importar los módulos locales
-from . import models, database, schemas # 🔹 Importamos schemas
-from .routers import products # 🔹 Importamos el nuevo router
+# 🔹 Importamos 'auth' y los nuevos routers
+from . import models, database, schemas, auth 
+from .routers import products, auth as auth_router
 
-# Crear las tablas en la base de datos
+# 🔹 Crear las tablas (AHORA INCLUYE 'users')
 models.Base.metadata.create_all(bind=database.engine)
 
-# Inicializar FastAPI
 app = FastAPI()
 
-# Configurar CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -22,42 +21,39 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# =========================
-# Rutas
-# =========================
-
-# 🔹 Incluimos el router de productos
+# =Criterio 3: Proteger rutas =========================
+# 🔹 Incluimos los routers
 app.include_router(products.router)
+app.include_router(auth_router.router) # Router de Login/Registro
 
 @app.get("/")
 def root():
     return {"message": "API de Gestión de Stock"}
 
 # ==================================
-# Rutas de Movimientos de Stock
-# (Se mantienen aquí por ahora)
+# 🔹 Protegemos la ruta de Movimientos
 # ==================================
 @app.post("/api/stock/movements")
-def create_movement(movimiento: schemas.MovimientoCreate, db: Session = Depends(database.get_db)):
+def create_movement(
+    movimiento: schemas.MovimientoCreate, 
+    db: Session = Depends(database.get_db),
+    current_user: schemas.User = Depends(auth.get_current_user) # Protegido
+):
     producto = db.query(models.Producto).filter(models.Producto.id == movimiento.producto_id).first()
     if not producto:
         raise HTTPException(status_code=404, detail="Producto no encontrado")
 
-    # Validar tipo de movimiento
     if movimiento.tipo not in ["entrada", "salida"]:
         raise HTTPException(status_code=400, detail="Tipo debe ser 'entrada' o 'salida'")
 
-    # Verificar stock suficiente si es salida
     if movimiento.tipo == "salida" and movimiento.cantidad > producto.stock_actual:
         raise HTTPException(status_code=400, detail="Stock insuficiente")
 
-    # Ajustar stock según tipo
     if movimiento.tipo == "entrada":
         producto.stock_actual += movimiento.cantidad
-    else:  # salida
+    else:
         producto.stock_actual -= movimiento.cantidad
 
-    # Crear registro de movimiento
     tipo_enum = models.TipoMovimiento.entrada if movimiento.tipo == "entrada" else models.TipoMovimiento.salida
     nuevo_movimiento = models.MovimientoDeStock(
         producto_id=producto.id,

@@ -45,3 +45,27 @@ class Movimiento(MovimientoCreate):
     
     class Config:
         from_attributes = True
+
+        # ... (tus schemas ProductoCreate, ProductoUpdate, MovimientoCreate, etc.) ...
+# ... (asegúrate de que estén los nombres en español que corregimos) ...
+
+# ==================================
+# 🔹 AÑADIDO: Schemas de Autenticación
+# ==================================
+class UserBase(BaseModel):
+    username: str
+
+class UserCreate(UserBase):
+    password: str
+
+class User(UserBase):
+    id: int
+    class Config:
+        from_attributes = True
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+class TokenData(BaseModel):
+    username: str | None = None

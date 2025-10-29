@@ -1,33 +1,33 @@
+// frontend/src/components/StockMovementForm.jsx
 import React, { useState } from "react";
+import { useAuth } from "../context/AuthContext"; // 🔹 Importamos el auth
 
-// URL del endpoint que creamos en el backend (main.py)
 const MOVEMENT_API_URL = "http://127.0.0.1:8000/api/stock/movements";
 
 export default function StockMovementForm({ products, onMovementSubmit }) {
   const [searchTerm, setSearchTerm] = useState("");
+  // ... (otros useStates)
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [cantidad, setCantidad] = useState(1);
   const [tipo, setTipo] = useState("entrada");
-  
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  // Criterio 1: Buscar producto por nombre o SKU (en la lista local)
+  const { token } = useAuth(); // 🔹 Obtenemos el token
+
   const handleSearch = (e) => {
+    // ... (lógica de búsqueda existente, no cambia)
     e.preventDefault();
     setError("");
     if (!searchTerm) {
       setSelectedProduct(null);
       return;
     }
-
-    // Buscamos en la lista de productos que nos pasó App.jsx
     const found = products.find(
       (p) =>
         p.sku.toLowerCase() === searchTerm.toLowerCase() ||
         p.nombre.toLowerCase().includes(searchTerm.toLowerCase())
     );
-
     if (found) {
       setSelectedProduct(found);
     } else {
@@ -36,7 +36,6 @@ export default function StockMovementForm({ products, onMovementSubmit }) {
     }
   };
 
-  // Criterio 2 y 3: Enviar el movimiento al API
   const handleSubmitMovement = async (e) => {
     e.preventDefault();
     if (!selectedProduct) return;
@@ -45,9 +44,13 @@ export default function StockMovementForm({ products, onMovementSubmit }) {
     setError("");
 
     try {
+      // Criterio 5: Enviar token
       const res = await fetch(MOVEMENT_API_URL, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}` 
+        },
         body: JSON.stringify({
           producto_id: selectedProduct.id,
           cantidad: parseInt(cantidad),
@@ -56,15 +59,12 @@ export default function StockMovementForm({ products, onMovementSubmit }) {
       });
 
       if (!res.ok) {
-        // Si el backend da error (ej. "Stock insuficiente"), lo mostramos
         const errData = await res.json();
         throw new Error(errData.detail || "Error al registrar movimiento");
       }
 
-      // Criterio 4: Actualizar la tabla
-      // Llamamos a la función que nos pasó App.jsx (que es fetchProducts)
-      onMovementSubmit();
-
+      onMovementSubmit(); // Llama a fetchProducts en DashboardPage
+      
       // Limpiar formulario
       setSelectedProduct(null);
       setSearchTerm("");
@@ -80,9 +80,8 @@ export default function StockMovementForm({ products, onMovementSubmit }) {
 
   return (
     <div style={{ padding: "10px", border: "1px solid #444", borderRadius: "8px", marginBottom: "20px" }}>
+      {/* ... (todo el JSX/render existente) ... */}
       <h3>Registrar Movimiento de Stock</h3>
-      
-      {/* Formulario de Búsqueda */}
       <form onSubmit={handleSearch} style={{ marginBottom: "10px" }}>
         <input
           type="text"
@@ -92,11 +91,7 @@ export default function StockMovementForm({ products, onMovementSubmit }) {
         />
         <button type="submit">Buscar</button>
       </form>
-
-      {/* Mensaje de error (si existe) */}
       {error && <p style={{ color: "red" }}>{error}</p>}
-
-      {/* Criterio 2: Formulario de Movimiento (si hay producto) */}
       {selectedProduct && (
         <form
           onSubmit={handleSubmitMovement}
