@@ -13,7 +13,8 @@ class Proveedor(Base):
     id = Column(Integer, primary_key=True, index=True)
     nombre = Column(String, unique=True, index=True)
 
-    productos = relationship("Producto", back_populates="proveedor")
+    # 🔹 CORREGIDO: Especificar la ruta completa del módulo
+    productos = relationship("backend.models.Producto", back_populates="proveedor")
 
 
 class Producto(Base):
@@ -22,14 +23,15 @@ class Producto(Base):
     id = Column(Integer, primary_key=True, index=True)
     sku = Column(String, unique=True, index=True)
     nombre = Column(String, index=True)
-    descripcion = Column(String, nullable=True)  # Agregado nullable
+    descripcion = Column(String, nullable=True)
     precio_compra = Column(Float)
     precio_venta = Column(Float)
     stock_actual = Column(Integer, default=0)
-    proveedor_id = Column(Integer, ForeignKey("proveedores.id"), nullable=True)  # Agregado nullable=True
+    proveedor_id = Column(Integer, ForeignKey("proveedores.id"), nullable=True)
 
-    proveedor = relationship("Proveedor", back_populates="productos")
-    movimientos = relationship("MovimientoDeStock", back_populates="producto")
+    # 🔹 CORREGIDO: Especificar la ruta completa del módulo
+    proveedor = relationship("backend.models.Proveedor", back_populates="productos")
+    movimientos = relationship("backend.models.MovimientoDeStock", back_populates="producto")
 
 
 class MovimientoDeStock(Base):
@@ -40,4 +42,15 @@ class MovimientoDeStock(Base):
     tipo = Column(Enum(TipoMovimiento))
     cantidad = Column(Integer)
 
-    producto = relationship("Producto", back_populates="movimientos")
+    # 🔹 CORREGIDO: Especificar la ruta completa del módulo
+    producto = relationship("backend.models.Producto", back_populates="movimientos")
+
+# ==================================
+# Modelo de Usuario (Añadido en la Issue 5.1)
+# ==================================
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String, unique=True, index=True)
+    hashed_password = Column(String)
