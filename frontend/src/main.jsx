@@ -1,19 +1,17 @@
-// frontend/src/main.jsx
+// src/main.jsx
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.jsx'
 
-// 🔹 Imports añadidos
+// 🔹 Importar el Router aquí 🔹
 import { BrowserRouter } from 'react-router-dom'
-import { AuthProvider } from './context/AuthContext'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
+    {/* 🔹 El ÚNICO BrowserRouter debe estar aquí 🔹 */}
     <BrowserRouter>
-      <AuthProvider>
-        <App />
-      </AuthProvider>
+      <App />
     </BrowserRouter>
   </StrictMode>,
 )

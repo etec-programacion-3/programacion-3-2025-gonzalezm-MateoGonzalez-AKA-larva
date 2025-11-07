@@ -27,10 +27,15 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 # 2. Funciones de Hashing
 # ==================================
 def verify_password(plain_password, hashed_password):
-    return pwd_context.verify(plain_password, hashed_password)
+    # Truncar la contraseña a 72 bytes antes de verificar
+    password_bytes = plain_password.encode('utf-8')[:72]
+    return pwd_context.verify(password_bytes, hashed_password)
 
 def get_password_hash(password):
-    return pwd_context.hash(password)
+    # Truncar la contraseña a 72 bytes antes de hashear
+    # bcrypt tiene un límite de 72 bytes
+    password_bytes = password.encode('utf-8')[:72]
+    return pwd_context.hash(password_bytes)
 
 # ==================================
 # 3. Funciones de JWT
