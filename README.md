@@ -1,4 +1,6 @@
-Guía de Instalación y Ejecución
+Guía de Instalación y Ejecución 
+
+PROFE TENEME PIEDAD PORFA 🙏🙏🙏
 
 Ejecutar el proyecto requiere dos terminales.
 
