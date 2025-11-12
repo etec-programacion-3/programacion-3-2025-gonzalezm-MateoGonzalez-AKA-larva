@@ -1,10 +1,10 @@
-# backend/auth.py
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from datetime import datetime, timedelta, timezone
+import os # ⬅️ 1. IMPORTAR OS
 
 from . import database, models, schemas
 
@@ -12,8 +12,13 @@ from . import database, models, schemas
 # 1. Configuración de Seguridad
 # ==================================
 
-# 🔹 IMPORTANTE: Cambia esto por una clave secreta real y guárdala segura
-SECRET_KEY = "tu_clave_secreta_aqui" 
+# 🔹 2. LEER LA CLAVE SECRETA DESDE EL ENTORNO
+SECRET_KEY = os.environ.get("SECRET_KEY")
+
+# 3. VERIFICAR QUE LA CLAVE EXISTA
+if SECRET_KEY is None:
+    raise RuntimeError("Error: La variable de entorno SECRET_KEY no está configurada.")
+
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
@@ -70,6 +75,8 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
         raise credentials_exception
     
     user = db.query(models.User).filter(models.User.username == token_data.username).first()
+    
     if user is None:
         raise credentials_exception
+        
     return user
