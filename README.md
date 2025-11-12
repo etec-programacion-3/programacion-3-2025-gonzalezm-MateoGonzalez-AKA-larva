@@ -38,7 +38,7 @@ Paso 2: Ejecutar el Backend (Terminal 1)
 Bash
 
 # Crear entorno virtual
-python3 -m venv venv
+python3 -m venv venv (antes debes borrar el clonado)
 
 # Activar entorno virtual (Linux/macOS)
 source venv/bin/activate
