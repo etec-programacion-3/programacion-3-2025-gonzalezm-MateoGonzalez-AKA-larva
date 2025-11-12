@@ -44,7 +44,7 @@ python3 -m venv venv
 source venv/bin/activate
 
 # Instalar dependencias de Python
-pip install fastapi uvicorn sqlalchemy python-jose "passlib[bcrypt]" bcrypt
+pip install fastapi uvicorn sqlalchemy python-jose "passlib[bcrypt]" bcrypt python-multipart
 
 2.2. Base de Datos (SQLite)
 
