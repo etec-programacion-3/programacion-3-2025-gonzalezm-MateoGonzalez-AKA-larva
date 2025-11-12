@@ -1,0 +1,95 @@
+# ===================================================================
+# PRUEBAS DE API DE GESTIÓN DE STOCK
+#
+# Instrucciones:
+# 1. Ejecuta el Backend (Terminal 1).
+# 2. Ejecuta las peticiones en este archivo en orden (de arriba hacia abajo).
+#
+# Variable @authToken: Se obtiene automáticamente al ejecutar "Iniciar sesión".
+# Variable @productId: Se obtiene automáticamente al ejecutar "Crear un producto".
+# ===================================================================
+
+# -- Variables Globales --
+@baseUrl = http://127.0.0.1:8000
+@authToken = 
+@productId = 
+
+### ===================================================================
+### 1. AUTENTICACIÓN
+### ===================================================================
+
+### Registrar un nuevo usuario
+# (Solo necesitas ejecutar esto una vez por usuario)
+POST {{baseUrl}}/api/auth/register
+Content-Type: application/json
+
+{
+  "username": "testuser_http",
+  "password": "testpassword123"
+}
+
+###
+### Iniciar sesión para obtener el token
+# Esta petición captura el 'access_token' y lo guarda en la variable @authToken
+# @name loginRequest
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/x-www-form-urlencoded
+
+username=testuser_http&password=testpassword123
+
+> {%
+# Captura el token de la respuesta y lo guarda en la variable @authToken
+client.global.set("authToken", response.body.access_token);
+%}
+
+
+### ===================================================================
+### 2. CRUD DE PRODUCTOS (Rutas Protegidas)
+### ===================================================================
+
+### (CREATE) Crear un nuevo producto
+# Esta petición usa el @authToken y captura el ID del nuevo producto en @productId
+# @name createProduct
+POST {{baseUrl}}/api/products/
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+  "sku": "SKU-TEST-001",
+  "nombre": "Producto de Prueba (HTTP)",
+  "descripcion": "Creado desde el REST client",
+  "precio_compra": 100.00,
+  "precio_venta": 150.00,
+  "stock_actual": 50
+}
+
+> {%
+# Captura el ID del producto recién creado
+client.global.set("productId", response.body.id);
+%}
+
+###
+### (READ) Obtener lista de productos
+# Esta petición usa el @authToken
+GET {{baseUrl}}/api/products/
+Authorization: Bearer {{authToken}}
+
+
+###
+### (UPDATE) Actualizar el producto recién creado
+# Esta petición usa el @authToken y el @productId
+PUT {{baseUrl}}/api/products/{{productId}}
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+  "nombre": "Producto de Prueba ACTUALIZADO",
+  "precio_venta": 160.00
+}
+
+
+###
+### (DELETE) Eliminar el producto recién creado
+# Esta petición usa el @authToken y el @productId
+DELETE {{baseUrl}}/api/products/{{productId}}
+Authorization: Bearer {{authToken}}
