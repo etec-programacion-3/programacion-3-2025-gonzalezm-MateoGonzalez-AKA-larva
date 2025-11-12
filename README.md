@@ -83,9 +83,10 @@ Abrir una segunda terminal.
 
 3.1. Dependencias de Node.js
 
-Bash
+
 
 cd frontend
+
 npm install
 
 3.2. Configuración de Variables de Entorno (API URL)
